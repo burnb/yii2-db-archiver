@@ -1,49 +1,116 @@
 <?php
 /**
  * @copyright (c) 2015, Galament
- * @author Petrov Aleksanr <burnb83@gmail.com> 
+ * @author Petrov Aleksanr <burnb83@gmail.com>
  * Date: 07.04.2015
  * Time: 4:13
  */
 
 namespace burn\dbArchiver;
 
+use yii;
 use yii\base\Model;
-use yii\db\ActiveRecord;
 
 class DbArchiver extends Model
 {
-    private $arcClass;
+    public $dumpPath;
+    private $query;
+
+    public function init()
+    {
+        $this->query = new ArchiveQuery();
+    }
 
     /**
-     * @param $arcClass ActiveRecord
+     * @return ArchiveQuery
      */
-    public function _construct($arcClass)
+    public function getQuery()
     {
-        $this->arcClass = $arcClass;
+        return $this->query;
     }
 
     /**
      *
+     * @return bool|int
+     * @throws yii\db\Exception
      */
-    public function actionStart()
+    public function actionSaveToFile()
     {
-        $this->archive($this->arcClass);
+        $query = $this->getQuery();
+        if ($query->isDirect()) {
+            $sql = "SELECT *
+                    INTO OUTFILE '" . $this->dumpPath . $query->getModel()->tableName() . "_" . date('d_m_Y_h_i_s') . ".sql'
+                    FIELDS TERMINATED BY ',' OPTIONALLY ENCLOSED BY '\"'
+                    LINES TERMINATED BY '\\n'
+                    FROM " . $query->getModel()->tableName() . "
+                    WHERE " . $this->getDateCondition();
+            $result = $query
+                        ->getModel()
+                        ->getDb()
+                        ->createCommand($sql)
+                        ->execute();
+        } else {
+            $result = false;
+        }
+
+        return $result;
     }
 
     /**
-     * @param $arcClass ActiveRecord
+     * @param $filePath
+     * @return bool|int
+     * @throws yii\db\Exception
      */
-    private function archive($arcClass)
+    public function actionRestoreFromFile($filePath)
     {
-        $arcClass::getDb()
-            ->createCommand("SELECT *
-                INTO OUTFILE 'dump.sql'
-                FIELDS TERMINATED BY ',' OPTIONALLY ENCLOSED BY '\"'
-                LINES TERMINATED BY '\n'
-                FROM log_error
-                WHERE log_time < UNIX_TIMESTAMP(DATE_SUB(NOW(), INTERVAL 1 MONTH))")
-            ->execute();
+        $query = $this->getQuery();
+        if ($query->isDirect()) {
+            $sql = "LOAD DATA INFILE '" . $filePath . "'
+                    INTO TABLE " . $query->getModel()->tableName() . "
+                    FIELDS TERMINATED BY ',' OPTIONALLY ENCLOSED BY '\"'
+                    LINES TERMINATED BY '\\n'";
+            $result = $query
+                ->getModel()
+                ->getDb()
+                ->createCommand($sql)
+                ->execute();
+        } else {
+            $result = false;
+        }
 
+        return $result;
+    }
+
+    /**
+     * @return bool
+     */
+    public function actionArchive()
+    {
+        if ($this->actionSaveToFile()) {
+            $result = $this
+                ->getQuery()
+                ->getModel()
+                ->deleteAll($this->getDateCondition());
+            if ($result) {
+                printf('Archive table "' . $this->getQuery()->getModel()->tableName() . "\" success.\r\n");
+
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * @return string
+     */
+    private function getDateCondition()
+    {
+        $query = $this->getQuery();
+        $cropDate = ($query->isMkTimeDateColumn())
+            ? "UNIX_TIMESTAMP(DATE_SUB(NOW(), INTERVAL " . $query->getOlderThen() . "))"
+            : "DATE_SUB(NOW(), INTERVAL " . $query->getOlderThen() . ")";
+
+        return $query->getDateColumn() . " < " . $cropDate;
     }
 }
