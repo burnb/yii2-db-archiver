@@ -23,6 +23,9 @@ class DbArchiver extends Model
         $this->arcClass = $arcClass;
     }
 
+    /**
+     *
+     */
     public function actionStart()
     {
         $this->archive($this->arcClass);
