@@ -1,0 +1,22 @@
+{
+  "name": "burn/yii2-db-archiver",
+  "description": "Archive old data from db to file.",
+  "type": "yii2-extension",
+  "keywords": ["yii2", "extension", "archive", "archiver", "db", "mysql", "dump"],
+  "license": "BSD-4-Clause",
+  "authors": [
+    {
+      "name": "Petrov Aleksandr",
+      "email": "petrov.aleksandr@phdevelop.com"
+    }
+  ],
+  "require": {
+    "php": ">=5.4.0",
+    "yiisoft/yii2": "*"
+  },
+  "autoload": {
+    "psr-4": {
+      "burn\\dbArciver\\": ""
+    }
+  }
+}
