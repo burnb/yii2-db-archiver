@@ -1,7 +1,23 @@
 Yii2 DB Archiver.
 ===================
-Archive old data from db to file by Yii2 ActiveRecord models. 
+What is this?
+-------------
+DbArchiver archive old data from db to file by Yii2 ActiveRecord models. 
 For big tables allow direct file export from mysql database(fast archiving but file save only on mysql server).
+
+------------------
+Installation
+------------
+
+Yii2 framework and PHP 5.4 or higher is required to use it.
+
+Installation is recommended to be done via [composer][] by adding the following to the `require` section in your `composer.json`:
+
+```json
+"burn/yii2-db-archiver": "dev-master"
+```
+
+Run `composer update` afterwards.
 
 Usage:
 ------

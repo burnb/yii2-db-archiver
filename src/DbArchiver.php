@@ -8,8 +8,10 @@
 
 namespace burn\dbArchiver;
 
+use SplFileObject;
 use yii;
 use yii\base\Model;
+use yii\helpers\BaseFileHelper;
 
 /**
  * Class DbArchiver
@@ -57,28 +59,33 @@ class DbArchiver extends Model
         $result = false;
         $query = $this->getQuery();
         $model = $query->getModel();
+        $filePath = BaseFileHelper::normalizePath($this->dumpPath . $model->tableName() . "_" . date('d_m_Y_h_i_s') . ".sql");
         if ($query->isDirect()) {
-            $tableName = $model->tableName();
             $sql = "SELECT *
-                    INTO OUTFILE ':filePath'
+                    INTO OUTFILE :filePath
                     FIELDS TERMINATED BY ',' OPTIONALLY ENCLOSED BY '\"'
                     LINES TERMINATED BY '\\n'
-                    FROM :table
-                    WHERE :condition";
+                    FROM {$model->tableName()}
+                    WHERE :dateCondition";
             $result = $model
                 ->getDb()
                 ->createCommand($sql, [
-                    ':filePath'  => $this->dumpPath . $tableName . "_" . date('d_m_Y_h_i_s') . ".sql",
-                    ':table'     => $tableName,
-                    ':condition' => $this->getDateCondition()
+                    ':filePath'      => $filePath,
+                    ':dateCondition' => $this->getDateCondition()
                 ])
                 ->execute();
         } else {
+            /** @var array $data */
             $data = $model::find()
                 ->where($this->getDateCondition())
                 ->asArray()
                 ->all();
             if ($data) {
+                $file = new SplFileObject($filePath, "w");
+                foreach ($data as $key => $row) {
+                    $file->fputcsv($row);
+                    $result = $key;
+                }
 
             }
         }
@@ -99,27 +106,34 @@ class DbArchiver extends Model
         $query = $this->getQuery();
         $model = $query->getModel();
         if ($query->isDirect()) {
-            $sql = "LOAD DATA INFILE ':filePath'
-                    INTO TABLE :table
+            $sql = "LOAD DATA INFILE :filePath
+                    INTO TABLE {$model->tableName()}
                     FIELDS TERMINATED BY ',' OPTIONALLY ENCLOSED BY '\"'
                     LINES TERMINATED BY '\\n'";
             $result = $model
                 ->getDb()
                 ->createCommand($sql, [
-                    ':filePath' => $filePath,
-                    ':table'    => $model->tableName()
+                    ':filePath' => $filePath
                 ])
                 ->execute();
         } else {
-            $data = [];
-            $sql = \Yii::$app->getDb()->createCommand()->batchInsert($model->tableName(), $model->fields(), $data)->getSql();
-            $sql .= 'ON DUPLICATE KEY UPDATE ';
-            $values = [];
-            foreach ($model->fields() as $column) {
-                $values[] = "{$column} = VALUES({$column})";
+            $file = new SplFileObject($filePath);
+            $file->setFlags(SplFileObject::SKIP_EMPTY);
+            while (!$file->eof()) {
+                if ($row = $file->fgetcsv()) {
+                    $data[] = $row;
+                }
             }
-            $sql .= implode($values, ', ');
-            $result = \Yii::$app->getDb()->createCommand($sql)->execute();
+            if (isset($data)) {
+                $sql = \Yii::$app->getDb()->createCommand()->batchInsert($model->tableName(), $model->attributes(), $data)->getSql();
+                $sql .= ' ON DUPLICATE KEY UPDATE ';
+                $values = [];
+                foreach ($model->attributes() as $column) {
+                    $values[] = "{$column} = VALUES({$column})";
+                }
+                $sql .= implode($values, ', ');
+                $result = \Yii::$app->getDb()->createCommand($sql)->execute();
+            }
         }
 
         return $result;
