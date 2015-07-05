@@ -1,6 +1,6 @@
 <?php
 /**
- * @copyright (c) 2015, Galament
+ * @copyright (c) 2015, Petrov Aleksanr
  * @author Petrov Aleksanr <burnb83@gmail.com>
  * Date: 07.04.2015
  * Time: 5:07
@@ -9,25 +9,65 @@
 namespace burn\dbArchiver;
 
 use yii\base\Model;
+use yii\console\Exception;
 use yii\db\ActiveRecord;
 
+/**
+ * Class ArchiveQuery
+ * @package burn\dbArchiver
+ */
 class ArchiveQuery extends Model
 {
-    private $model,
-        $direct = false,
-        $dateColumn = 'created_at',
-        $mkTimeDateColumn = false,
-        $olderThen = '1 month';
+    /**
+     * @var ActiveRecord object that will be archived
+     */
+    private $model;
+    /**
+     * Archiving mode
+     * If set true it archive db data by direct MySQL command(fast for big table, but save archive file only on MySQL server)
+     * If set false archive db through PHP(big resource usage)
+     * @see setDirect()
+     * @see isDirect()
+     * @var bool
+     */
+    private $direct = false;
+    /**
+     * Name of date column by that cut archiving data
+     * @see setDateColumn()
+     * @see getDateColumn()
+     * @var string
+     */
+    private $dateColumn = 'created_at';
+    /**
+     * Set is date column in Unix timestamp format or in datetime
+     * @see setMkTimeDateColumn()
+     * @see isMkTimeDateColumn()
+     * @var bool
+     */
+    private $mkTimeDateColumn = false;
+    /**
+     * Cut date param-condition how old data will be archived
+     * @see getOlderThen()
+     * @see setOlderThen()
+     * @var string
+     */
+    private $olderThen = '1 month';
 
     /**
+     * Return ActiveRecord object that will be archived
      * @return ActiveRecord
+     * @throws Exception
      */
     public function getModel()
     {
-        return $this->model;
+        if (isset($this->model)) {
+            return $this->model;
+        }
+        throw new Exception('Model class not set!');
     }
 
     /**
+     * Set new model object by class name that will be archived
      * @param string $modelClassName
      * @return $this
      */
@@ -39,6 +79,7 @@ class ArchiveQuery extends Model
     }
 
     /**
+     * Check is archive mode direct or not
      * @return boolean
      */
     public function isDirect()
@@ -47,6 +88,9 @@ class ArchiveQuery extends Model
     }
 
     /**
+     * Set archiving mode
+     * If set true it archive db data by direct MySQL command(fast for big table, but save archive file only on MySQL server)
+     * If set false archive db through PHP(big resource usage)
      * @param boolean $direct
      * @return $this
      */
@@ -58,6 +102,7 @@ class ArchiveQuery extends Model
     }
 
     /**
+     * Return name of date column by that cut archiving data
      * @return string
      */
     public function getDateColumn()
@@ -66,6 +111,7 @@ class ArchiveQuery extends Model
     }
 
     /**
+     * Set name of date column by that cut archiving data
      * @param string $dateColumn
      * @return $this
      */
@@ -77,6 +123,7 @@ class ArchiveQuery extends Model
     }
 
     /**
+     * Return setting is date column in Unix timestamp format
      * @return boolean
      */
     public function isMkTimeDateColumn()
@@ -85,6 +132,7 @@ class ArchiveQuery extends Model
     }
 
     /**
+     * Set setting is date column in Unix timestamp format or in datetime
      * @param boolean $mkTimeDateColumn
      * @return $this
      */
@@ -96,6 +144,7 @@ class ArchiveQuery extends Model
     }
 
     /**
+     * Return cut date param-condition how old data will be archived
      * @return string
      */
     public function getOlderThen()
@@ -104,6 +153,7 @@ class ArchiveQuery extends Model
     }
 
     /**
+     * Set cut date param-condition how old data will be archived
      * @param string $olderThen
      * @return $this
      */
