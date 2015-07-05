@@ -2,8 +2,8 @@ Yii2 DB Archiver.
 ===================
 What is this?
 -------------
-DbArchiver archive old data from db to file by Yii2 ActiveRecord models. 
-For big tables allow direct file export from mysql database(fast archiving but file save only on mysql server).
+DbArchiver archive and restore old data from db to file by Yii2 ActiveRecord models. 
+For big tables allow direct file export from MySQL database(fast archiving, but file save only on MySQL server drive).
 
 ------------------
 Installation
