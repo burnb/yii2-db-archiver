@@ -59,20 +59,18 @@ class DbArchiver extends Model
         $result = false;
         $query = $this->getQuery();
         $model = $query->getModel();
-        $filePath = BaseFileHelper::normalizePath($this->dumpPath . $model->tableName() . "_" . date('d_m_Y_h_i_s') . ".sql");
+        $rawFilePath = $this->dumpPath . $model->tableName() . "_" . date('d_m_Y_h_i_s') . ".sql";
+        $filePath = BaseFileHelper::normalizePath($rawFilePath);
         if ($query->isDirect()) {
             $sql = "SELECT *
                     INTO OUTFILE :filePath
                     FIELDS TERMINATED BY ',' OPTIONALLY ENCLOSED BY '\"'
                     LINES TERMINATED BY '\\n'
                     FROM {$model->tableName()}
-                    WHERE :dateCondition";
+                    WHERE {$this->getDateCondition()}";
             $result = $model
                 ->getDb()
-                ->createCommand($sql, [
-                    ':filePath'      => $filePath,
-                    ':dateCondition' => $this->getDateCondition()
-                ])
+                ->createCommand($sql, [':filePath' => $rawFilePath])
                 ->execute();
         } else {
             /** @var array $data */
@@ -86,7 +84,6 @@ class DbArchiver extends Model
                     $file->fputcsv($row);
                     $result = $key;
                 }
-
             }
         }
 
